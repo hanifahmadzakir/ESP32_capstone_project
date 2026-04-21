@@ -6,7 +6,6 @@
 #include "sensors.h"
 #include "globals.h"
 
-// Inisialisasi Objek Sensor
 #define DHTTYPE DHT22
 DHT dht(DHT_PIN, DHTTYPE);
 BH1750 lightMeter;

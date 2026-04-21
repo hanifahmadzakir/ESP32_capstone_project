@@ -23,43 +23,33 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   
   Serial.printf("[MQTT] Pesan masuk [%s]: %s\n", topic, message.c_str());
 
-  // Pastikan perintah berasal dari topik yang benar
   if (String(topic) == topic_cmd) {
     
-    // 🟢 SKENARIO 1: MENERIMA PERINTAH ON
     if (message == "ON" && !isPumpRunning) {
-      // 1. Eksekusi perangkat keras DULU!
       digitalWrite(RELAY_PIN, RELAY_ON);
       startTime = millis();
       isPumpRunning = true;
       Serial.println("[POMPA] MENYALA. Mengirim konfirmasi (ACK)...");
 
-      // 2. Susun JSON Feedback ON
       StaticJsonDocument<128> doc;
       doc["Pump"] = "ON";
       
-      // 3. Kirim Feedback ke Topik Status
       char outMsg[128];
       serializeJson(doc, outMsg);
       client.publish(topic_status, outMsg);
     } 
     
-    // 🔴 SKENARIO 2: MENERIMA PERINTAH OFF
     else if (message == "OFF" && isPumpRunning) {
-      // 1. Eksekusi perangkat keras DULU!
       digitalWrite(RELAY_PIN, RELAY_OFF);
       
-      // 2. Kalkulasi Durasi
       unsigned long durationSec = (millis() - startTime) / 1000;
       isPumpRunning = false;
       Serial.printf("[POMPA] MATI. Durasi: %lu detik. Mengirim konfirmasi (ACK)...\n", durationSec);
 
-      // 3. Susun JSON Feedback OFF beserta data biayanya
       StaticJsonDocument<128> doc;
       doc["Pump"] = "OFF";
       doc["duration_seconds"] = durationSec;
       
-      // 4. Kirim Feedback ke Topik Status
       char outMsg[128];
       serializeJson(doc, outMsg);
       client.publish(topic_status, outMsg);
