@@ -1,98 +1,79 @@
-# 🌾 Precision Farming - IoT Edge Node (ESP32)
+# 🌱 Smart Agriculture IoT System - Capstone Project Universitas Terbuka STSI4440.15 CP15B
 
-This repository contains the source code (C++/Arduino Framework) for the **ESP32** hardware edge node, which is a core component of the *Precision Farming Smart Irrigation System* ecosystem.
+An *Internet of Things* (IoT) system based on an *Edge-to-Cloud Microservices* architecture for smart agricultural pump monitoring and control. This system bridges Operational Technology (OT) in the field with Information Technology (IT) in the cloud via the MQTT protocol.
 
-Developed using **PlatformIO**, this project serves as the edge device deployed directly in the agricultural field to read environmental data and execute watering commands.
+## 🏗️ System Architecture
 
-## ✨ Key Features
+This project is designed with a modular architecture that strictly separates hardware (Edge) and software (Backend/Frontend) logic:
 
-1. **Edge Computing for Pump Duration:** This device does not rely on the backend to calculate watering time. The ESP32 autonomously calculates the exact duration (in seconds) using the `millis()` function while the relay is active, ensuring 100% accurate electricity cost calculations even during network latency or disconnects.
-2. **Telemetry Broadcasting:** Continuously reads environmental data (Soil Moisture, Temperature, Light Intensity) and publishes it in JSON format at defined intervals.
-3. **Bidirectional MQTT Communication:** Maintains a real-time connection to the MQTT broker (Mosquitto) to receive execution commands (Manual Override / DSS API) and send device status reports.
-4. **Auto-Reconnect Mechanism:** Equipped with a self-healing function that automatically attempts to reconnect to both the Wi-Fi network and the MQTT Broker if the connection drops in the field.
+1. **Edge Node (ESP32):** Responsible for reading sensors, controlling actuators (Pump Relay), displaying a local interface (HMI OLED), and communicating over a Wi-Fi network.
+2. **Message Broker (Mosquitto MQTT):** Acts as a lightweight and secure (authenticated) real-time communication bridge between the edge hardware and the server.
+3. **Logic & Integration (Node-RED):** Handles the data flow, stores historical records to the database, and routes commands to/from the user interface.
+4. **Data Persistence (PostgreSQL):** A relational database used to store watering history, actual pump runtimes, and telemetry data.
+5. **Visualization (Grafana):** Provides a comprehensive dashboard for sensor metrics and node performance, securely embedded directly into the client application.
+6. **Frontend (ReactJS):** The End-User UI, hosted on Vercel.
 
-## 🛠️ Tech Stack & Dependencies
+## 🧰 Hardware Components
 
-* **Microcontroller:** ESP32 (Espressif)
-* **Framework:** Arduino (via PlatformIO)
-* **Dependencies / Libraries:**
-  * `knolleary/PubSubClient` (MQTT Client)
-  * `bblanchon/ArduinoJson` (JSON parsing and formatting)
-  * *(Add other sensor libraries here, e.g., DHT sensor library)*
+* **Microcontroller:** ESP32 Dev Module (NodeMCU)
+* **HMI Display:** OLED 128x64 (I2C) - Displays IP address, RSSI, MQTT status, and Pump status
+* **Actuator:** Relay Module (Active LOW/HIGH) & Water Pump
+* **Sensors:** * DHT11/DHT22 (Temperature & Humidity)
+    * BH1750 (Light Intensity - I2C)
+    * Soil Moisture Sensor (Analog)
 
-## 🔌 Hardware & Pin Mapping
+## 📡 Communication Protocol (MQTT)
 
-| Component | ESP32 Pin (GPIO) | Description |
-| :--- | :--- | :--- |
-| **1.5HP Pump Relay** | `GPIO 4` | Active-High / Active-Low (Adjust based on module) |
-| **Soil Moisture Sensor** | `GPIO 34` | Analog Input (ADC) |
-| **Air Temperature Sensor**| `GPIO 14` | Digital Input |
-| **LDR / Light Sensor** | `GPIO 35` | Analog Input (ADC) |
+The system utilizes a two-way communication architecture (*Closed-Loop Feedback*) to ensure every command is executed accurately.
 
-*(Note: Adjust the GPIO pin numbers above to match your actual field wiring)*
+### 1. Sensor Telemetry (Routine)
+* **Topic:** `kebun/sensor/telemetri`
+* **Interval:** Every 60 seconds (1 minute)
+* **Payload (JSON):** Temperature, air humidity, light intensity, and soil moisture data.
 
-## 📡 MQTT Topic Architecture
+### 2. Pump Control (Event-Driven)
+* **Command Topic (Node-RED -> ESP32):** `kebun/pompa/cmd`
+    * Payload: `ON` or `OFF` (Plain String)
+* **Status/ACK Topic (ESP32 -> Node-RED):** `kebun/pompa/status`
+    * Payload when turned ON: `{"Pump": "ON"}`
+    * Payload when turned OFF: `{"Pump": "OFF", "duration_seconds": 120}` (Sends the actual duration the pump was active).
 
-This device uses the following topics to communicate with the MING stack (MQTT, InfluxDB, Node-RED, Grafana) and the ExpressJS backend:
+## 💻 Firmware Code Structure (C++ / PlatformIO)
 
-### 1. Receiving Commands (Subscribe)
-* **Topic:** `kebun/pompa/cmd`
-* **Payload Expected:** `ON` or `OFF` (Plain string)
+The ESP32 firmware is divided into multiple independent modules (*Separation of Concerns*):
 
-### 2. Sending Status & Duration (Publish)
-Sent immediately after the relay is turned off so the ExpressJS backend can calculate operational costs.
-* **Topic:** `kebun/pompa/status`
-* **Payload JSON:**
-  ```json
-  {
-    "status": "OFF",
-    "duration_seconds": 125
-  }
+* `main.cpp`: Entry point and main loop (Non-blocking timer).
+* `credentials.h`: Secret configurations (`#define` macros for SSID, Password, and MQTT Auth).
+* `network.cpp` / `.h`: Handles Wi-Fi connection, MQTT reconnection, and the `mqtt_callback` function.
+* `sensors.cpp` / `.h`: Handles sensor readings and JSON payload construction for the DHT, BH1750, and Soil Moisture sensors.
+* `display.cpp` / `.h`: Manages the UI layout on the SSD1306 OLED display.
 
+## 🚀 Deployment Guide (Ubuntu 24.04 VPS)
 
-3. Sending Sensor Telemetry (Publish)
-Sent every N minutes to be stored in InfluxDB and visualized in Grafana.
+The system's backend is deployed on a single VPS (1 Core, 2GB RAM) using **Docker Compose** to ensure proper service isolation.
 
-Topic: kebun/sensor/telemetri
+1. **Clone the repository and navigate to the server directory:**
+   ```bash
+   git clone <YOUR_REPO_URL>
+   cd iot_backend
+2. **Set up Mosquitto security permissions:**
+   ```bash
+   sudo chmod 644 mosquitto/config/pwfile
+3. **Run Microservices stack:**
+   ```bash
+   docker compose up -d
+3. **Running containers: **
+   ```bash
+   * iot_mosquitto (Port 1883)
+   * iot_postgres (Port 5432)
+   * iot_nodered (Port 1880)
+   * iot_grafana (Port 3000 - Iframe embedding enabled)
 
-Payload JSON:
-{
-  "soil_moisture": 45,
-  "temperature": 28.5,
-  "light_intensity": 800
-}
+## 🔒 Security Measures
+Firmware: Utilizes #define macros in a separate credentials.h file, which is added to .gitignore to prevent credential leaks on GitHub.
 
-🚀 Installation & Build Guide (PlatformIO)
-Clone this repository:
+MQTT Broker: Anonymous access is disabled (allow_anonymous false), requiring hashed username and password authentication.
 
-Bash
-git clone <your-repo-url>
-Open the project folder using VS Code with the PlatformIO extension installed.
+Node-RED: The UI Editor is protected using a bcrypt hashed password inside settings.js.
 
-Create a src/credentials.h file (ensure this is in your .gitignore to prevent leaking credentials) and input your network configuration:
-
-C++
-#ifndef CREDENTIALS_H
-#define CREDENTIALS_H
-
-const char* WIFI_SSID = "YOUR_WIFI_NAME";
-const char* WIFI_PASS = "YOUR_WIFI_PASSWORD";
-const char* MQTT_SERVER = "YOUR_VPS_OR_BROKER_IP";
-const int MQTT_PORT = 1883;
-const char* MQTT_USER = "mqtt_username"; // Optional
-const char* MQTT_PASS = "mqtt_password"; // Optional
-
-#endif
-
-Connect the ESP32 to your computer via a USB cable.
-
-Click the Build button (checkmark icon) in the bottom PlatformIO toolbar to compile.
-
-Click the Upload button (right arrow icon) to flash the firmware to the ESP32.
-
-Open the Serial Monitor (plug icon) with a baud rate of 115200 to view the booting and connection process.
-
-👨‍💻 Contributors
-Capstone Team - [List other team members here]
-
-Developed for the Information Systems Capstone Project.
+Server Access: Root password login is disabled, entirely replaced by asymmetric authentication (SSH Public Key ed25519).

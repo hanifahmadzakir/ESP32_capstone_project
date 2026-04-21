@@ -15,9 +15,9 @@
 #define RELAY_OFF HIGH
 
 // --- MQTT TOPICS ---
-extern const char* topic_cmd;
-extern const char* topic_status;
-extern const char* topic_telemetry;
+extern const char *topic_cmd;
+extern const char *topic_status;
+extern const char *topic_telemetry;
 
 // --- GLOBAL VARIABLES (Deklarasi extern) ---
 extern PubSubClient client;

@@ -7,7 +7,7 @@
 #include "credentials.h"
 #include "display.h"
 
-// --- DEFINISI VARIABEL GLOBAL (Hanya ditulis di sini) ---
+// --- VARIABEL GLOBAL ---
 const char *topic_cmd = "kebun/pompa/cmd";
 const char *topic_status = "kebun/pompa/status";
 const char *topic_telemetry = "kebun/sensor/telemetri";
@@ -23,7 +23,7 @@ const long telemetryInterval = 60000; // 1 Menit atau 60 detik
 
 extern WiFiClient espClient;
 extern PubSubClient client;
-extern bool isPumpRunning; // Pastikan ini terdeklarasi global di network.cpp
+extern bool isPumpRunning;
 
 unsigned long lastDisplayUpdate = 0;
 const long displayInterval = 2000;
@@ -52,17 +52,17 @@ void loop()
   }
   client.loop();
 
-  //milis calc
+  // milis calc
   unsigned long currentMillis = millis();
 
-  //telemetry routine
+  // telemetry routine
   if (currentMillis - lastTelemetryTime >= telemetryInterval)
   {
     lastTelemetryTime = currentMillis;
     publish_telemetry();
   }
 
-  //display routine
+  // display routine
   if (currentMillis - lastDisplayUpdate >= displayInterval)
   {
     lastDisplayUpdate = currentMillis;
