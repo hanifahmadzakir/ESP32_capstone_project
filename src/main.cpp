@@ -7,6 +7,9 @@
 #include "credentials.h"
 #include "display.h"
 
+#define RXD2 16
+#define TXD2 17
+
 // --- VARIABEL GLOBAL ---
 const char *topic_cmd = "kebun/pompa/cmd";
 const char *topic_status = "kebun/pompa/status";
@@ -19,7 +22,7 @@ bool isPumpRunning = false;
 // --------------------------------------------------------
 
 unsigned long lastTelemetryTime = 0;
-const long telemetryInterval = 60000; // 1 Menit atau 60 detik
+const long telemetryInterval = 10000; // 1 Menit atau 60 detik
 
 extern WiFiClient espClient;
 extern PubSubClient client;
@@ -31,7 +34,8 @@ const long displayInterval = 2000;
 void setup()
 {
   Serial.begin(115200);
-
+  Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
+  Serial.println("[SYSTEM] RS485 Serial2 Initialized on RX2/TX2");
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, RELAY_OFF);
 

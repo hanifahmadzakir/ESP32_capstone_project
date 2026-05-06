@@ -5,8 +5,8 @@
 #include <PubSubClient.h>
 
 // --- PIN DEFINITIONS ---
-#define RELAY_PIN 4
-#define DHT_PIN 14
+#define RELAY_PIN 14
+#define DHT_PIN 4
 #define SOIL_PIN 34
 #define I2C_SDA 21
 #define I2C_SCL 22

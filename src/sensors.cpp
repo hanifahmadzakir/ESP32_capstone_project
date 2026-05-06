@@ -16,11 +16,11 @@ void setup_sensors()
   Wire.begin(I2C_SDA, I2C_SCL);
   if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE))
   {
-    Serial.println("[SENSOR] BH1750 Siap");
+    Serial.println("[SENSOR] BH1750 Ready");
   }
   else
   {
-    Serial.println("[SENSOR] BH1750 Gagal!");
+    Serial.println("[SENSOR] BH1750 Failed to connect!");
   }
 }
 
@@ -30,15 +30,15 @@ void publish_telemetry()
   float t = dht.readTemperature();
   if (isnan(h) || isnan(t))
   {
-    Serial.println("[SENSOR] Gagal baca DHT22!");
+    Serial.println("[SENSOR] Failed to read DHT22!");
     t = 0.0;
     h = 0.0;
   }
 
   float lux = lightMeter.readLightLevel();
   int rawSoil = analogRead(SOIL_PIN);
-  int soilPercent = map(rawSoil, 4095, 0, 0, 100);
-  soilPercent = constrain(soilPercent, 0, 100);
+  int soilPercent = map(rawSoil, 100, 0, 0, 4095);
+  soilPercent = constrain(soilPercent, 100, 0);
 
   StaticJsonDocument<200> doc;
   doc["temperature"] = t;
@@ -49,6 +49,12 @@ void publish_telemetry()
   char outMsg[200];
   serializeJson(doc, outMsg);
 
+  //publish to MQTT
   client.publish(topic_telemetry, outMsg);
+
+  //publish to RS485 Serial2
+  Serial2.println(outMsg);
+
+  // Log to Serial Monitor
   Serial.println("[TELEMETRY] Terkirim: " + String(outMsg));
 }

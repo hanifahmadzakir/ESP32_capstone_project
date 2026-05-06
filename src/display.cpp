@@ -15,7 +15,7 @@ void setup_display()
     // Inisialisasi OLED
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
     {
-        Serial.println(F("OLED SSD1306 gagal diinisialisasi"));
+        Serial.println(F("OLED SSD1306 FAILED INITIALIZATION"));
         for (;;)
             ;
     }
@@ -25,7 +25,7 @@ void setup_display()
     display.setTextColor(SSD1306_WHITE);
 
     display.setCursor(10, 25);
-    display.println("MEMULAI SISTEM...");
+    display.println("INITIALIZING SYSTEM");
     display.display();
     delay(2000);
 }

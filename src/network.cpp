@@ -6,6 +6,12 @@
 #include "globals.h"
 #include "credentials.h"
 
+// --- Tambahkan variabel LWT di sini ---
+const char* topic_device_status = "kebun/device/status";
+const char* offline_payload = "{\"device_id\": 1, \"status\": \"OFFLINE\"}";
+const char* online_payload = "{\"device_id\": 1, \"status\": \"ONLINE\"}";
+// --------------------------------------
+
 void setup_wifi() {
   delay(10);
   Serial.println("\n[WIFI] Menghubungkan ke " + String(WIFI_SSID));
@@ -62,8 +68,15 @@ void reconnect_mqtt() {
     Serial.print("[MQTT] Menghubungkan ke broker...");
     String clientId = "ESP32_Edge_" + String(random(0xffff), HEX);
     
-    if (client.connect(clientId.c_str(), MQTT_USER, MQTT_PASS)) {
+    // Fitur LWT dimasukkan ke parameter connect()
+    // Format: connect(clientId, username, password, willTopic, willQoS, willRetain, willMessage)
+    // willRetain = true agar broker selalu menyimpan status terakhir (OFFLINE) jika alat terputus
+    if (client.connect(clientId.c_str(), MQTT_USER, MQTT_PASS, topic_device_status, 1, true, offline_payload)) {
       Serial.println(" Terhubung!");
+      
+      // Jika sukses terhubung, LANGSUNG kirim status ONLINE ke MQTT Broker (retain = true)
+      client.publish(topic_device_status, online_payload, true);
+      
       client.subscribe(topic_cmd);
     } else {
       Serial.print(" Gagal, rc=");
